@@ -1,45 +1,41 @@
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Any
 
 
 @dataclass
 class StudentState:
     """
-    Represents ARWA's complete understanding of the student's
-    current academic and wellness situation.
+    Unified memory object for ARWA.
+    Contains EVERYTHING the agent currently knows.
     """
 
-    # Original extracted features
-    features: Dict
+    # Raw extracted features
+    features: Dict[str, Any]
 
-    # AI model predictions
-    academic_risk: object
-    burnout_risk: object
+    # AI model outputs
+    academic_risk: Any
+    burnout_risk: Any
 
-    # Original tasks
+    # Core student context
     tasks: List[Dict]
 
-    # Student resources
     available_time: float
-
-    # Current grade
     current_grade: float
-
-    # Wellness
     stress_level: float
+
 
 class StateVectorBuilder:
     """
-    Combines extracted features and AI predictions into one object.
+    Converts raw pipeline outputs into a unified state object.
     """
 
     def build(
         self,
-        features,
+        features: Dict,
         academic_prediction,
         burnout_prediction,
-        tasks
-    ):
+        tasks: List[Dict]
+    ) -> StudentState:
 
         return StudentState(
 
@@ -51,10 +47,9 @@ class StateVectorBuilder:
 
             tasks=tasks,
 
-            available_time=features["available_time"],
+            available_time=features.get("available_time", 0),
 
-            current_grade=features["current_grade"],
+            current_grade=features.get("current_grade", 0),
 
-            stress_level=features["stress_level"]
-
+            stress_level=features.get("stress_level", 0)
         )
