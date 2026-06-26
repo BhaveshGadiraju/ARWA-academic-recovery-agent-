@@ -1,12 +1,9 @@
-from dataclasses import dataclass
 from typing import Dict
 
-
-@dataclass
-class BurnoutPrediction:
-    risk_score: float
-    risk_level: str
-    confidence: float
+from models.agent_prediction import (
+    AgentPrediction,
+    ContributingFactor
+)
 
 
 class BurnoutRiskModel:
@@ -18,50 +15,36 @@ class BurnoutRiskModel:
     def __init__(self):
 
         self.weights = {
-
             "estimated_workload": 0.35,
-
             "stress_level": 0.30,
-
             "available_time": 0.15,
-
             "average_difficulty": 0.10,
-
             "deadline_density": 0.10
-
         }
 
     def normalize_workload(self, workload):
-
         return min(workload / 20, 1.0)
 
     def normalize_stress(self, stress):
-
         return min(stress / 10, 1.0)
 
     def normalize_available_time(self, hours):
-
         return max(0.0, 1 - (hours / 8))
 
     def normalize_difficulty(self, difficulty):
-
         return difficulty / 10
 
     def normalize_deadline_density(self, density):
-
         return min(density, 1.0)
 
     def classify_risk(self, score):
 
         if score >= 0.80:
             return "CRITICAL"
-
         if score >= 0.60:
             return "HIGH"
-
         if score >= 0.40:
             return "MEDIUM"
-
         return "LOW"
 
     def calculate_confidence(self, features):
@@ -99,29 +82,57 @@ class BurnoutRiskModel:
         )
 
         risk_score = (
-
             workload * self.weights["estimated_workload"]
-
             + stress * self.weights["stress_level"]
-
             + available_time * self.weights["available_time"]
-
             + difficulty * self.weights["average_difficulty"]
-
             + density * self.weights["deadline_density"]
-
         )
 
-        risk_level = self.classify_risk(
-            risk_score
-        )
+        risk_level = self.classify_risk(risk_score)
 
-        confidence = self.calculate_confidence(
-            features
-        )
+        confidence = self.calculate_confidence(features)
 
-        return BurnoutPrediction(
-            risk_score=round(risk_score, 2),
-            risk_level=risk_level,
-            confidence=confidence
+        # -------------------------
+        # Explainability
+        # -------------------------
+        top_factors = [
+            ContributingFactor(
+                factor="Workload",
+                contribution=round(
+                    workload * self.weights["estimated_workload"] * 100,
+                    1
+                ),
+                explanation="Large workloads increase burnout risk."
+            ),
+            ContributingFactor(
+                factor="Stress Level",
+                contribution=round(
+                    stress * self.weights["stress_level"] * 100,
+                    1
+                ),
+                explanation="Higher reported stress significantly impacts burnout."
+            ),
+            ContributingFactor(
+                factor="Available Time",
+                contribution=round(
+                    available_time * self.weights["available_time"] * 100,
+                    1
+                ),
+                explanation="Limited study time increases pressure."
+            )
+        ]
+
+        reasoning = [
+            f"Burnout risk classified as {risk_level}.",
+            "Workload and stress are primary contributors.",
+            "Available study time moderates burnout."
+        ]
+
+        return AgentPrediction(
+            score=round(risk_score, 2),
+            level=risk_level,
+            confidence=confidence,
+            top_factors=top_factors,
+            reasoning=reasoning
         )
