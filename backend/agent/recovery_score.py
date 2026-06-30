@@ -1,139 +1,120 @@
-class RecoveryScoreEngine:
+from models.ai_report import AIReport
+
+
+class ReportGenerator:
     """
-    Computes ARWA's Recovery Score before and after
-    the AI-generated recovery strategy.
+    Generates ARWA's final AI report.
 
-    This becomes the headline metric shown to users
-    and judges.
+    This report is the single object returned to the
+    frontend and contains the AI's complete analysis.
     """
 
-    # ---------------------------------------------
-
-    def calculate_current(
+    def generate(
         self,
-        state,
+        academic_prediction,
+        burnout_prediction,
+        recovery_score,
+        forecast,
+        strategies,
     ):
 
-        academic = state.academic_risk.score
+        # ------------------------------------------
+        # Overall Confidence
+        # ------------------------------------------
 
-        burnout = state.burnout_risk.score
-
-        score = (
-
-            (1 - academic) * 60
-
-            +
-
-            (1 - burnout) * 40
-
+        confidence = round(
+            (
+                academic_prediction.confidence
+                + burnout_prediction.confidence
+            ) / 2,
+            2,
         )
 
-        return self._build_result(score)
+        # ------------------------------------------
+        # Dynamic Insights
+        # ------------------------------------------
 
-    # ---------------------------------------------
+        insights = []
 
-    def calculate_projected(
-        self,
-        state,
-        strategy,
-    ):
+        for factor in academic_prediction.top_factors:
+            insights.append(
+                f"{factor.factor} contributes {factor.contribution}% to academic risk."
+            )
 
-        evaluation = strategy["evaluation"]
+        for factor in burnout_prediction.top_factors:
+            insights.append(
+                f"{factor.factor} contributes {factor.contribution}% to burnout risk."
+            )
 
-        academic = state.academic_risk.score
+        insights = insights[:5]
 
-        burnout = state.burnout_risk.score
+        # ------------------------------------------
+        # Recommended Actions
+        # ------------------------------------------
 
-        score = (
+        actions = []
 
-            (1 - academic) * 40
+        if academic_prediction.level in ("HIGH", "CRITICAL"):
+            actions.append(
+                "Prioritize completing missing assignments immediately."
+            )
 
-            +
+        if burnout_prediction.level in ("HIGH", "CRITICAL"):
+            actions.append(
+                "Reduce workload and schedule recovery breaks."
+            )
 
-            (1 - burnout) * 20
+        actions.extend([
 
-            +
+            "Follow the AI-recommended recovery strategy.",
 
-            evaluation["grade_gain"] * 4
+            "Complete high-impact assignments before lower-value work.",
 
-            +
+            "Review your progress daily and update the recovery plan."
 
-            evaluation["urgency_bonus"] * 2
+        ])
 
-            -
+        # Remove duplicates while preserving order
+        actions = list(dict.fromkeys(actions))
 
-            evaluation["burnout"] * 10
+        # ------------------------------------------
+        # Executive Summary
+        # ------------------------------------------
 
-            -
-
-            evaluation["time_cost"]
-
+        summary = (
+            f"ARWA predicts a "
+            f"{recovery_score['after']['probability']}% probability "
+            f"of successful academic recovery. "
+            f"The Recovery Score is projected to improve from "
+            f"{recovery_score['before']['score']} "
+            f"to {recovery_score['after']['score']} "
+            f"({recovery_score['improvement']} point improvement). "
+            f"The recommended strategy balances academic performance "
+            f"with burnout prevention while maximizing long-term success."
         )
 
-        return self._build_result(score)
+        # ------------------------------------------
+        # Final Report
+        # ------------------------------------------
 
-    # ---------------------------------------------
+        return AIReport(
 
-    def calculate_improvement(
-        self,
-        current,
-        projected,
-    ):
+            recovery_score=recovery_score,
 
-        return {
+            academic_prediction=academic_prediction,
 
-            "before": current,
+            burnout_prediction=burnout_prediction,
 
-            "after": projected,
+            forecast=forecast,
 
-            "improvement":
+            strategies=strategies,
 
-                projected["score"]
+            top_insights=insights,
 
-                -
+            recommended_actions=actions,
 
-                current["score"]
+            executive_summary=summary,
 
-        }
+            confidence=confidence,
 
-    # ---------------------------------------------
-
-    def _build_result(
-        self,
-        score,
-    ):
-
-        score = max(
-            0,
-            min(
-                round(score),
-                100,
-            ),
         )
-
-        probability = score
-
-        if score >= 85:
-            status = "Excellent"
-
-        elif score >= 70:
-            status = "Good"
-
-        elif score >= 50:
-            status = "Recovering"
-
-        elif score >= 30:
-            status = "At Risk"
-
-        else:
-            status = "Critical"
-
-        return {
-
-            "score": score,
-
-            "status": status,
-
-            "probability": probability,
-
-        }

@@ -9,6 +9,7 @@ from agent.simulation_engine import SimulationEngine
 from agent.recovery_score import RecoveryScoreEngine
 from agent.recovery_forecast import RecoveryForecastEngine
 from agent.strategy_comparison import StrategyComparisonEngine
+from agent.report_generator import ReportGenerator
 
 from models.academic_risk_model import AcademicRiskModel
 from models.burnout_risk_model import BurnoutRiskModel
@@ -19,9 +20,10 @@ class RecoveryOrchestrator:
     """
     Master AI pipeline for ARWA.
 
-    Coordinates feature extraction, prediction,
-    planning, simulation, reasoning, explainability,
-    forecasting, and memory.
+    Coordinates every stage of the academic
+    recovery process from perception through
+    planning, simulation, forecasting, and
+    explainability.
     """
 
     def __init__(self):
@@ -38,21 +40,23 @@ class RecoveryOrchestrator:
 
         self.planner = Planner()
 
-        self.reasoning_engine = ReasoningEngine()
-
-        self.reflection_engine = ReflectionEngine()
-
-        self.explanation_engine = ExplanationEngine()
-
-        self.memory = ExperienceMemory()
-
         self.simulation_engine = SimulationEngine()
+
+        self.strategy_comparison = StrategyComparisonEngine()
 
         self.recovery_score = RecoveryScoreEngine()
 
         self.recovery_forecast = RecoveryForecastEngine()
 
-        self.strategy_comparison = StrategyComparisonEngine()
+        self.reasoning_engine = ReasoningEngine()
+
+        self.explanation_engine = ExplanationEngine()
+
+        self.reflection_engine = ReflectionEngine()
+
+        self.memory = ExperienceMemory()
+
+        self.report_generator = ReportGenerator()
 
     # --------------------------------------------------
 
@@ -61,19 +65,17 @@ class RecoveryOrchestrator:
         student_data,
     ):
 
-        # ----------------------------------------------
-        # Phase 1
-        # Feature Extraction
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 1 — Feature Extraction
+        # ==================================================
 
         features = self.feature_extractor.extract(
             student_data
         )
 
-        # ----------------------------------------------
-        # Phase 2
-        # AI Prediction
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 2 — Risk Prediction
+        # ==================================================
 
         academic_prediction = self.academic_model.predict(
             features
@@ -83,10 +85,9 @@ class RecoveryOrchestrator:
             features
         )
 
-        # ----------------------------------------------
-        # Phase 3
-        # State Construction
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 3 — Build Student State
+        # ==================================================
 
         state = self.state_builder.build(
 
@@ -100,66 +101,81 @@ class RecoveryOrchestrator:
 
         )
 
-        # ----------------------------------------------
-        # Phase 4
-        # Decision Making
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 4 — AI Decision Engine
+        # ==================================================
 
         decisions = self.decision_engine.optimize(
             state
         )
 
-        # ----------------------------------------------
-        # Phase 5
-        # Planning
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 5 — Planner
+        # ==================================================
 
         plan = self.planner.generate(
             decisions
         )
 
-        # ----------------------------------------------
-        # Phase 6
-        # Simulation
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 6 — Simulation
+        # ==================================================
 
         simulations = self.simulation_engine.simulate(
+
             state,
+
             decisions,
+
         )
+
+        if simulations:
+
+            best_strategy = simulations[0]
+
+        else:
+
+            best_strategy = None
+
+        # ==================================================
+        # Phase 7 — Strategy Comparison
+        # ==================================================
 
         strategies = self.strategy_comparison.compare(
-            simulations
+
+            simulations,
+
         )
 
-        best_strategy = self.simulation_engine.best_strategy(
-            state,
-            decisions,
-        )
-
-        # ----------------------------------------------
-        # Phase 7
-        # Recovery Score
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 8 — Recovery Score
+        # ==================================================
 
         current_score = self.recovery_score.calculate_current(
+
             state,
+
         )
 
         projected_score = self.recovery_score.calculate_projected(
+
             state,
+
             best_strategy,
+
         )
 
         recovery_score = self.recovery_score.calculate_improvement(
+
             current_score,
+
             projected_score,
+
         )
 
-        # ----------------------------------------------
-        # Phase 8
-        # Forecast
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 9 — Recovery Forecast
+        # ==================================================
 
         forecast = self.recovery_forecast.forecast(
 
@@ -171,34 +187,57 @@ class RecoveryOrchestrator:
 
         )
 
-        # ----------------------------------------------
-        # Phase 9
-        # Explainability
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 10 — AI Report
+        # ==================================================
+
+        report = self.report_generator.generate(
+
+            academic_prediction,
+
+            burnout_prediction,
+
+            recovery_score,
+
+            forecast,
+
+            strategies,
+
+        )
+
+        # ==================================================
+        # Phase 11 — Explainability
+        # ==================================================
 
         reasoning = self.reasoning_engine.generate_reasoning(
+
             state,
+
             decisions,
+
         )
 
         explanations = self.explanation_engine.generate(
-            decisions
+
+            decisions,
+
         )
 
-        # ----------------------------------------------
-        # Phase 10
-        # Reflection
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 12 — Reflection
+        # ==================================================
 
         reflection = self.reflection_engine.reflect(
+
             state,
+
             decisions,
+
         )
 
-        # ----------------------------------------------
-        # Phase 11
-        # Memory
-        # ----------------------------------------------
+        # ==================================================
+        # Phase 13 — Memory
+        # ==================================================
 
         self.memory.store(
 
@@ -210,31 +249,29 @@ class RecoveryOrchestrator:
 
         )
 
-        # ----------------------------------------------
-        # Final AI Output
-        # ----------------------------------------------
+        # ==================================================
+        # Final Output
+        # ==================================================
 
         return {
 
+            "report": report,
+
             "features": features,
+
+            "state": state,
 
             "academic_prediction": academic_prediction,
 
             "burnout_prediction": burnout_prediction,
 
-            "state": state,
-
             "decisions": decisions,
 
             "plan": plan,
 
-            "reasoning": reasoning,
-
-            "explanations": explanations,
-
-            "reflection": reflection,
-
             "simulations": simulations,
+
+            "strategies": strategies,
 
             "best_strategy": best_strategy,
 
@@ -242,6 +279,10 @@ class RecoveryOrchestrator:
 
             "forecast": forecast,
 
-            "strategies": strategies,
+            "reasoning": reasoning,
+
+            "explanations": explanations,
+
+            "reflection": reflection,
 
         }
